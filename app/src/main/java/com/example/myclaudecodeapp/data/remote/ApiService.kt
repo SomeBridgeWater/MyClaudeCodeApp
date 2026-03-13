@@ -5,6 +5,6 @@ import retrofit2.http.GET
 
 /** Retrofit APIインターフェース */
 interface ApiService {
-    @GET("/")
+    @GET("/v1/")
     suspend fun getHello(): HelloResponse
 }
