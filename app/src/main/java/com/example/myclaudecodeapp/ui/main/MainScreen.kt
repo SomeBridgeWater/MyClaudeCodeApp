@@ -2,6 +2,7 @@ package com.example.myclaudecodeapp.ui.main
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -20,6 +21,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.myclaudecodeapp.ui.cart.CartScreen
+import com.example.myclaudecodeapp.ui.chat.ChatRoomListScreen
+import com.example.myclaudecodeapp.ui.chat.ChatScreen
 import com.example.myclaudecodeapp.ui.home.HomeScreen
 import com.example.myclaudecodeapp.ui.settings.SettingsScreen
 
@@ -33,6 +36,11 @@ sealed class BottomNavItem(
         route = "bottom_home",
         icon = Icons.Filled.Home,
         contentDescription = "ホーム"
+    )
+    data object Chat : BottomNavItem(
+        route = "bottom_chat",
+        icon = Icons.Filled.Chat,
+        contentDescription = "チャット"
     )
     data object Cart : BottomNavItem(
         route = "bottom_cart",
@@ -48,6 +56,7 @@ sealed class BottomNavItem(
 
 private val bottomNavItems = listOf(
     BottomNavItem.Home,
+    BottomNavItem.Chat,
     BottomNavItem.Cart,
     BottomNavItem.Settings
 )
@@ -94,6 +103,14 @@ fun MainScreen(id: String) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(BottomNavItem.Home.route) { HomeScreen() }
+            composable(BottomNavItem.Chat.route) {
+                ChatRoomListScreen(onRoomClick = { roomName ->
+                    navController.navigate("chat_room/$roomName")
+                })
+            }
+            composable("chat_room/{roomName}") {
+                ChatScreen(onBack = { navController.popBackStack() })
+            }
             composable(BottomNavItem.Cart.route) { CartScreen() }
             composable(BottomNavItem.Settings.route) { SettingsScreen() }
         }
