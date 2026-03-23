@@ -36,9 +36,11 @@ class ChatViewModel : ViewModel() {
     private val _connectionStatus = MutableStateFlow(ConnectionStatus.DISCONNECTED)
     val connectionStatus: StateFlow<ConnectionStatus> = _connectionStatus.asStateFlow()
 
+    private val _currentUsername = MutableStateFlow("")
+    val currentUsername: StateFlow<String> = _currentUsername.asStateFlow()
+
     private val client = OkHttpClient()
     private var webSocket: WebSocket? = null
-    private var currentUsername: String = ""
 
     /** チャットサーバーに接続し、joinメッセージを送信する */
     fun connect(username: String) {
@@ -46,7 +48,7 @@ class ChatViewModel : ViewModel() {
             _connectionStatus.value == ConnectionStatus.CONNECTING
         ) return
 
-        currentUsername = username
+        _currentUsername.value = username
         _connectionStatus.value = ConnectionStatus.CONNECTING
 
         val request = Request.Builder()
@@ -119,12 +121,13 @@ class ChatViewModel : ViewModel() {
         if (_connectionStatus.value == ConnectionStatus.CONNECTED) {
             val leaveJson = JSONObject().apply {
                 put("type", "leave")
-                put("username", currentUsername)
+                put("username", _currentUsername.value)
             }.toString()
             webSocket?.send(leaveJson)
         }
         webSocket?.close(1000, "ユーザーが切断")
         webSocket = null
+        _currentUsername.value = ""
         _connectionStatus.value = ConnectionStatus.DISCONNECTED
     }
 

@@ -1,19 +1,22 @@
 package com.example.myclaudecodeapp.ui.chat
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -50,6 +53,7 @@ fun ChatScreen(
 ) {
     val messages by viewModel.messages.collectAsStateWithLifecycle()
     val connectionStatus by viewModel.connectionStatus.collectAsStateWithLifecycle()
+    val currentUsername by viewModel.currentUsername.collectAsStateWithLifecycle()
 
     var usernameInput by remember { mutableStateOf("") }
     var messageInput by remember { mutableStateOf("") }
@@ -57,17 +61,23 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
 
-    // 自分が一番下にいるかどうかを判定するプロパティ
-    val isAtBottom = remember {
+    // 一番下を表示中かどうか
+    val isAtBottom by remember {
         derivedStateOf {
-            val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
-            lastVisibleItem?.index == listState.layoutInfo.totalItemsCount - 1
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            lastVisible >= listState.layoutInfo.totalItemsCount - 2
         }
     }
-    // 新着メッセージが届いたら最下部へスクロール
+
+    // スクロール制御:
+    // ・自分の送信 → 強制的に一番下へ（即時）
+    // ・相手からのメッセージ → 一番下を見ていた時のみスクロール
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
-            if (isAtBottom.value) {
+            val lastMessage = messages.last()
+            if (lastMessage.username == currentUsername) {
+                listState.scrollToItem(messages.size - 1)
+            } else if (isAtBottom) {
                 listState.animateScrollToItem(messages.size - 1)
             }
         }
@@ -76,7 +86,6 @@ fun ChatScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .imePadding()
             // 背景タップでキーボードを非表示にする。
             .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
     ) {
@@ -165,7 +174,7 @@ fun ChatScreen(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             items(messages) { msg ->
-                MessageRow(message = msg)
+                MessageRow(message = msg, currentUsername = currentUsername)
             }
         }
 
@@ -202,26 +211,59 @@ fun ChatScreen(
 
 /** メッセージ1件の表示 */
 @Composable
-private fun MessageRow(message: ChatMessage) {
+private fun MessageRow(message: ChatMessage, currentUsername: String) {
     when (message.type) {
         "message" -> {
-            Column(modifier = Modifier.padding(vertical = 2.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = message.username,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+            val isMine = message.username == currentUsername
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp),
+                horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start
+            ) {
+                Column(
+                    modifier = Modifier.widthIn(max = 260.dp),
+                    horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
+                ) {
+                    // 相手のメッセージのみユーザー名を表示
+                    if (!isMine) {
+                        Text(
+                            text = message.username,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+                        )
+                    }
+                    // バブル本体
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = if (isMine) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(
+                                    topStart = 16.dp,
+                                    topEnd = 16.dp,
+                                    bottomStart = if (isMine) 16.dp else 4.dp,
+                                    bottomEnd = if (isMine) 4.dp else 16.dp
+                                )
+                            )
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = message.text,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (isMine) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    // タイムスタンプ（バブルの下）
                     Text(
                         text = message.timestamp,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp, start = 4.dp, end = 4.dp)
                     )
                 }
-                Text(
-                    text = message.text,
-                    style = MaterialTheme.typography.bodyMedium
-                )
             }
         }
         else -> {
@@ -230,9 +272,10 @@ private fun MessageRow(message: ChatMessage) {
                 text = message.text,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 2.dp)
+                    .padding(vertical = 4.dp)
             )
         }
     }
