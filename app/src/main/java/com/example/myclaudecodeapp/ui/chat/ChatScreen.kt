@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -61,24 +62,24 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
 
-    // 一番下を表示中かどうか
+    // reverseLayout = true のため、index 0 が最新メッセージ（画面下端）
+    // firstVisibleItemIndex が小さければ最下部を見ている
     val isAtBottom by remember {
         derivedStateOf {
-            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            lastVisible >= listState.layoutInfo.totalItemsCount - 2
+            listState.firstVisibleItemIndex < 2
         }
     }
 
     // スクロール制御:
-    // ・自分の送信 → 強制的に一番下へ（即時）
+    // ・自分の送信 → 強制的に一番下へ（index 0）
     // ・相手からのメッセージ → 一番下を見ていた時のみスクロール
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             val lastMessage = messages.last()
             if (lastMessage.username == currentUsername) {
-                listState.scrollToItem(messages.size - 1)
+                listState.scrollToItem(0)
             } else if (isAtBottom) {
-                listState.animateScrollToItem(messages.size - 1)
+                listState.animateScrollToItem(0)
             }
         }
     }
@@ -86,6 +87,7 @@ fun ChatScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             // 背景タップでキーボードを非表示にする。
             .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
     ) {
@@ -164,16 +166,17 @@ fun ChatScreen(
 
         HorizontalDivider()
 
-        // メッセージ一覧
+        // メッセージ一覧（reverseLayout = true で最新が下端に固定）
         LazyColumn(
             state = listState,
+            reverseLayout = true,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            items(messages) { msg ->
+            items(messages.reversed()) { msg ->
                 MessageRow(message = msg, currentUsername = currentUsername)
             }
         }
