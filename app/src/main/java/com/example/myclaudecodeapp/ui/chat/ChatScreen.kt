@@ -62,11 +62,12 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
 
-    // reverseLayout = true のため、index 0 が最新メッセージ（画面下端）
-    // firstVisibleItemIndex が小さければ最下部を見ている
+    // reverseLayout = true のため index 0 が画面下端（最新メッセージ）
+    // visibleItemsInfo の最小インデックスで最下部にいるかを判定する
     val isAtBottom by remember {
         derivedStateOf {
-            listState.firstVisibleItemIndex < 2
+            val minVisibleIndex = listState.layoutInfo.visibleItemsInfo.minOfOrNull { it.index }
+            minVisibleIndex == null || minVisibleIndex < 2
         }
     }
 
@@ -176,7 +177,7 @@ fun ChatScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            items(messages.reversed()) { msg ->
+            items(messages.reversed(), key = { msg -> msg.id }) { msg ->
                 MessageRow(message = msg, currentUsername = currentUsername)
             }
         }

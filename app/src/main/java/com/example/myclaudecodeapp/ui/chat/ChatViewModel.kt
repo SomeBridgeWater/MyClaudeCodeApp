@@ -13,6 +13,7 @@ import org.json.JSONObject
 
 /** チャットメッセージのデータクラス */
 data class ChatMessage(
+    val id: Long,
     val type: String,
     val username: String,
     val text: String,
@@ -73,18 +74,21 @@ class ChatViewModel : ViewModel() {
 
                 val message = when (type) {
                     "join" -> ChatMessage(
+                        id = System.nanoTime(),
                         type = type,
                         username = msgUsername,
                         text = "[入室] $msgUsername ($timestamp)",
                         timestamp = timestamp
                     )
                     "message" -> ChatMessage(
+                        id = System.nanoTime(),
                         type = type,
                         username = msgUsername,
                         text = json.optString("text"),
                         timestamp = timestamp
                     )
                     "leave" -> ChatMessage(
+                        id = System.nanoTime(),
                         type = type,
                         username = msgUsername,
                         text = "[退室] $msgUsername ($timestamp)",
