@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.logging.interceptor)
+    implementation("com.patrykandpatrick.vico:compose-m3:3.0.3")
     implementation("androidx.navigation:navigation-compose:2.9.7")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
