@@ -53,7 +53,7 @@ class ChatViewModel : ViewModel() {
         _connectionStatus.value = ConnectionStatus.CONNECTING
 
         val request = Request.Builder()
-            .url("ws://192.168.0.114:8080")
+            .url("ws://192.168.10.101:8080")
             .build()
 
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
